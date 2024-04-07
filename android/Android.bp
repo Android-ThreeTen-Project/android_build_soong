@@ -84,6 +84,7 @@ bootstrap_go_package {
         "licenses_gob_enc.go",
         "logtags.go",
         "logtags_gob_enc.go",
+        "makefile_goal.go",
         "makevars.go",
         "metrics.go",
         "module.go",
