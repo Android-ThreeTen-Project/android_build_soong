@@ -313,6 +313,45 @@ var neverallowTests = []struct {
 			"module \"outside_art_libraries\": violates neverallow",
 		},
 	},
+	{
+		name: "disallowed makefile_goal",
+		fs: map[string][]byte{
+			"Android.bp": []byte(`
+				makefile_goal {
+					name: "foo",
+					product_out_path: "boot/trap.img"
+				}
+			`),
+		},
+		expectedErrors: []string{
+			"Only boot images.* may be imported as a makefile goal",
+		},
+	},
+	{
+		name: "disallowed makefile_goal outside external",
+		fs: map[string][]byte{
+			"project/Android.bp": []byte(`
+				makefile_goal {
+					name: "foo",
+					product_out_path: "obj/EXE/foo",
+				}
+			`),
+		},
+		expectedErrors: []string{
+			"not in allowed projects",
+		},
+	},
+	{
+		name: "allow makefile_goal within external",
+		fs: map[string][]byte{
+			"frameworks/opt/net/wifi/libwifi_hal/Android.bp": []byte(`
+				makefile_goal {
+					name: "foo",
+					product_out_path: "obj/EXE/foo",
+				}
+			`),
+		},
+	},
 	// Tests for the rule prohibiting the use of framework
 	{
 		name: "prohibit framework",
@@ -398,6 +437,7 @@ var prepareForNeverAllowTest = GroupFixturePreparers(
 		ctx.RegisterModuleType("java_device_for_host", newMockJavaLibraryModule)
 		ctx.RegisterModuleType("filesystem", newMockFilesystemModule)
 		ctx.RegisterModuleType("prebuilt_usr_srec", newMockPrebuiltUsrSrecModule)
+		ctx.RegisterModuleType("makefile_goal", newMockMakefileGoalModule)
 	}),
 )
 
@@ -509,4 +549,23 @@ func newMockPrebuiltUsrSrecModule() Module {
 	m := &mockPrebuiltUsrSrecModule{}
 	InitAndroidModule(m)
 	return m
+}
+
+type mockMakefileGoalProperties struct {
+	Product_out_path *string
+}
+
+type mockMakefileGoalModule struct {
+	ModuleBase
+	properties mockMakefileGoalProperties
+}
+
+func newMockMakefileGoalModule() Module {
+	m := &mockMakefileGoalModule{}
+	m.AddProperties(&m.properties)
+	InitAndroidModule(m)
+	return m
+}
+
+func (p *mockMakefileGoalModule) GenerateAndroidBuildActions(ModuleContext) {
 }
