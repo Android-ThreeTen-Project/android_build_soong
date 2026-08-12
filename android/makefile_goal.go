@@ -43,7 +43,6 @@ type makefileGoal struct {
 }
 
 var _ AndroidMkEntriesProvider = (*makefileGoal)(nil)
-var _ OutputFileProducer = (*makefileGoal)(nil)
 
 // Input file of this makefile_goal module. Nil if none specified. May use variable names in makefiles.
 func (p *makefileGoal) inputPath() *string {
@@ -51,14 +50,6 @@ func (p *makefileGoal) inputPath() *string {
 		return proptools.StringPtr(filepath.Join("$(PRODUCT_OUT)", proptools.String(p.properties.Product_out_path)))
 	}
 	return nil
-}
-
-// OutputFileProducer
-func (p *makefileGoal) OutputFiles(tag string) (Paths, error) {
-	if tag != "" {
-		return nil, fmt.Errorf("unsupported tag %q", tag)
-	}
-	return Paths{p.outputFilePath}, nil
 }
 
 // AndroidMkEntriesProvider
@@ -71,6 +62,7 @@ func (p *makefileGoal) DepsMutator(ctx BottomUpMutatorContext) {
 func (p *makefileGoal) GenerateAndroidBuildActions(ctx ModuleContext) {
 	filename := filepath.Base(proptools.String(p.inputPath()))
 	p.outputFilePath = PathForModuleOut(ctx, filename).OutputPath
+	ctx.SetOutputFiles(Paths{p.outputFilePath}, "")
 
 	ctx.InstallFile(PathForModuleInstall(ctx, "etc"), ctx.ModuleName(), p.outputFilePath)
 }
