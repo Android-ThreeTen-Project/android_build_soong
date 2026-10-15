@@ -269,6 +269,12 @@ func (imageTransitionMutator) IncomingTransition(ctx IncomingTransitionContext, 
 		IncomingTransitionContext: ctx,
 		kind:                      determineModuleKind(ctx.Module().base(), ctx),
 	})
+	// Vendor-only modules on legacy devices are packaged under system/vendor.
+	// A system filesystem dependency still needs their vendor image variant.
+	if incomingVariation == CoreVariation && ctx.DeviceConfig().VendorPath() == "system/vendor" &&
+		!InList(CoreVariation, variations) && InList(VendorVariation, variations) {
+		return VendorVariation
+	}
 
 	// If there's only 1 possible variation, use that. This is a holdover from when blueprint,
 	// when adding dependencies, would use the only variant of a module regardless of its variations

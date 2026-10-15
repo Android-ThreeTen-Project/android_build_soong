@@ -230,6 +230,14 @@ func createEnv(command *sbox_proto.Command) ([]string, error) {
 	if command.DontInheritEnv == nil || !*command.DontInheritEnv {
 		env = os.Environ()
 	}
+	if command.GetDontInheritEnv() {
+		// Only retain the fixed opt-in host heap reclamation settings. Other
+		// JVM options still obey the manifest's hermetic environment policy.
+		const heapOptions = "-XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20"
+		if os.Getenv("JAVA_TOOL_OPTIONS") == heapOptions {
+			env = append(env, "JAVA_TOOL_OPTIONS="+heapOptions)
+		}
+	}
 	for _, envVar := range command.Env {
 		if envVar.Name == nil || !envVarNameRegex.MatchString(*envVar.Name) {
 			name := "nil"

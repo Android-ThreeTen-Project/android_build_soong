@@ -215,6 +215,13 @@ func (pb PrimaryBuilderFactory) primaryBuilderInvocation(config Config) bootstra
 
 	commonArgs = append(commonArgs, "-l", filepath.Join(pb.config.FileListDir(), "Android.bp.list"))
 	invocationEnv := make(map[string]string)
+	// Keep explicitly requested Go memory tuning when the builder clears its
+	// environment. These settings affect host resource use, not build outputs.
+	for _, key := range []string{"GOGC", "GOMEMLIMIT"} {
+		if value, ok := config.Environment().Get(key); ok {
+			invocationEnv[key] = value
+		}
+	}
 	if pb.debugPort != "" {
 		//debug mode
 		commonArgs = append(commonArgs, "--delve_listen", pb.debugPort,
@@ -752,6 +759,11 @@ func runSoong(ctx Context, config Config, enforceNoSoongOutput bool) {
 			SetupLitePath(ctx, config, "")
 			ninjaPath, _ := config.Environment().Get("PATH")
 			ninjaEnv.Set("PATH", ninjaPath)
+			for _, key := range []string{"GOGC", "GOMEMLIMIT"} {
+				if value, ok := config.Environment().Get(key); ok {
+					ninjaEnv.Set(key, value)
+				}
+			}
 
 			cmd.Environment = &ninjaEnv
 			cmd.Sandbox = soongSandbox

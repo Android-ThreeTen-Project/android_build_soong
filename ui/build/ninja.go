@@ -247,6 +247,8 @@ func runNinja(ctx Context, config Config, ninjaArgs []string) {
 		}
 	}
 
+	hostHeapShrink := cmd.Environment.IsEnvTrue("LINEAGE_HOST_HEAP_SHRINK")
+
 	// Filter the environment, as ninja does not rebuild files when environment
 	// variables change.
 	//
@@ -264,6 +266,9 @@ func runNinja(ctx Context, config Config, ninjaArgs []string) {
 			// Set the path to a symbolizer (e.g. llvm-symbolizer) so ASAN-based
 			// tools can symbolize crashes.
 			"ASAN_SYMBOLIZER_PATH",
+			// Explicit host Go heap settings affect resources, not build outputs.
+			"GOGC",
+			"GOMEMLIMIT",
 			"HOME",
 			"JAVA_HOME",
 			"LANG",
@@ -349,6 +354,12 @@ func runNinja(ctx Context, config Config, ninjaArgs []string) {
 			"SISO_CREDENTIAL_HELPER",
 			"SISO_LIMITS",
 		}, config.BuildBrokenNinjaUsesEnvVars()...)...)
+	}
+
+	if hostHeapShrink {
+		// Fixed host heap reclamation flags only; do not forward arbitrary JVM
+		// options that could change outputs without invalidating the action cache.
+		cmd.Environment.Set("JAVA_TOOL_OPTIONS", "-XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20")
 	}
 
 	cmd.Environment.Set("DIST_DIR", config.DistDir())
